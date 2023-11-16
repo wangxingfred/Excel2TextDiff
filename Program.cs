@@ -60,7 +60,7 @@ namespace Excel2TextDiff
                     Environment.Exit(1);
                 }
 
-                var diffProgame = options.DiffProgram ?? "TortoiseMerge.exe";
+                var diffProgram = options.DiffProgram ?? "TortoiseMerge.exe";
 
                 var tempTxt1 = Path.GetTempFileName();
                 writer.TransformToTextAndSave(options.Files[0], tempTxt1);
@@ -69,7 +69,7 @@ namespace Excel2TextDiff
                 writer.TransformToTextAndSave(options.Files[1], tempTxt2);
 
                 ProcessStartInfo startInfo = new ProcessStartInfo();
-                startInfo.FileName = diffProgame;
+                startInfo.FileName = diffProgram;
                 string argsFormation = options.DiffProgramArgumentFormat ?? "/base:{0} /mine:{1}";
                 startInfo.Arguments = string.Format(argsFormation, tempTxt1, tempTxt2);
                 Process.Start(startInfo);
