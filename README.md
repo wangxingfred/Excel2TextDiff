@@ -10,8 +10,11 @@
     
 使用效果如图
     
-![pipeline](docs/images/d_70.jpg)
-
+更新优化对比行列对齐
+优化前
+![Excel2TextDiff](docs/images/d_71.JPEG)
+优化后
+![Excel2TextDiff](docs/images/d_72.JPEG)
 ## 支持与联系
 
 QQ群: 692890842 （Luban开发交流群）

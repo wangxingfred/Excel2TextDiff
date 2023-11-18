@@ -29,10 +29,9 @@ namespace Excel2TextDiff
         {
             var row = new List<string>();
             bool excelHeader = true;
-            
+
             var rowMaxWidth = new List<int>();
             List<List<string>> rows = new List<List<string>>();
-            int index = 0;
             while (reader.Read())
             {
                 try
@@ -54,7 +53,7 @@ namespace Excel2TextDiff
                             excelHeader = false;
                         }
 
-                        if (rowMaxWidth.Count<=0)
+                        if (rowMaxWidth.Count <= 0)
                         {
                             for (int i = 0; i < listStr.Count; i++)
                             {
@@ -62,7 +61,7 @@ namespace Excel2TextDiff
                                 rowMaxWidth.Add(str.Length);
                             }
                         }
-                    
+
                         List<string> result = new List<string>();
                         for (int i = 0; i < listStr.Count; i++)
                         {
@@ -71,23 +70,22 @@ namespace Excel2TextDiff
                             var chineseCnt = GetChineseCnt(str);
                             var englishCnt = totalCnt - chineseCnt;
                             var cnt = englishCnt + 2 * chineseCnt;
-                            if (i<rowMaxWidth.Count)
+                            if (i < rowMaxWidth.Count)
                             {
                                 int currentRowMaxWidth = 10;
                                 currentRowMaxWidth = rowMaxWidth[i];
                                 rowMaxWidth[i] = cnt > currentRowMaxWidth ? cnt : currentRowMaxWidth;
                             }
-                        
+
                             result.Add(str);
                         }
+
                         rows.Add(result);
                     }
                     else
                     {
                         // 忽略空白行，没必要diff这个
                     }
-                
-                    index++;
                 }
                 catch (Exception e)
                 {
@@ -105,25 +103,28 @@ namespace Excel2TextDiff
                     for (int j = 0; j < rowList.Count; j++)
                     {
                         var str = rowList[j];
-                    
+
                         var chineseCnt = GetChineseCnt(str);
                         // if (chineseCnt > 12)
                         // {
                         //     chineseCnt = 12;
                         // }
                         int currentRowMaxWidth = 8;
-                        if (j<rowMaxWidth.Count)
+                        if (j < rowMaxWidth.Count)
                         {
                             currentRowMaxWidth = rowMaxWidth[j];
                         }
+
                         int padding = currentRowMaxWidth;
                         if (padding < 8)
                         {
                             padding = 8;
                         }
-                        str=str.PadRight(padding-chineseCnt < 0 ? 0 : padding - chineseCnt,' ');
+
+                        str = str.PadRight(padding - chineseCnt < 0 ? 0 : padding - chineseCnt, ' ');
                         result.Add(str);
                     }
+
                     lines.Add(string.Join("|", result));
                 }
                 catch (Exception e)
@@ -144,6 +145,7 @@ namespace Excel2TextDiff
                 if (regex.IsMatch(cEnumerator.Current.ToString(), 0))
                     cnt++;
             }
+
             return cnt;
         }
     }
