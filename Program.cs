@@ -21,6 +21,12 @@ namespace Excel2TextDiff
         [Option('f', SetName = "diff", Required = false, HelpText = "3rd diff program argument format. default is TortoiseMerge format:'/base:{0} /mine:{1}'")]
         public string DiffProgramArgumentFormat { get; set; }
 
+        [Option('s', SetName = "separator", HelpText = "row cell separator char")]
+        public char Separator { get; set; } = ',';
+
+        [Option("pad", SetName = "padding row", HelpText = "padding from which row")]
+        public int PaddingBeginRow { get; set; }
+
         [Value(0)]
         public IList<string> Files { get; set; }
 
@@ -33,50 +39,69 @@ namespace Excel2TextDiff
         };
     }
 
-    class Program
+    internal static class Program
     {
-        static void Main(string[] args)
+        private static CommandLineOptions _options;
+
+        private static void Main(string[] args)
         {
-            var options = ParseOptions(args);
+            _options = ParseOptions(args);
 
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-            var writer = new Excel2TextWriter();
 
-            if (options.IsTransform)
+            #if DEBUG
+            var tempTxt1 = Path.GetTempFileName();
+            TransformToTextAndSave(
+                @"F:\P32\release_adr\table\project_campsite_宿舍\campsite_宿舍属性加成表.xml", tempTxt1);
+
+            var tempTxt2 = Path.GetTempFileName();
+            TransformToTextAndSave(
+                @"F:\P32\int_adr\table\project_campsite_宿舍\campsite_宿舍属性加成表.xml", tempTxt2);
+
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "TortoiseMerge.exe";
+            string argsFormation = _options.DiffProgramArgumentFormat ?? "/base:{0} /mine:{1}";
+            startInfo.Arguments = string.Format(argsFormation, tempTxt1, tempTxt2);
+            Process.Start(startInfo);
+            #else
+            if (_options.IsTransform)
             {
-                if (options.Files.Count != 2)
+                if (_options.Files.Count != 2)
                 {
                     Console.WriteLine("Usage: Excel2TextDiff -t <excel file> <text file>");
                     Environment.Exit(1);
                 }
-
-                writer.TransformToTextAndSave(options.Files[0], options.Files[1]);
+            
+                TransformToTextAndSave(_options.Files[0], _options.Files[1]);
             }
             else
             {
-                if (options.Files.Count != 2)
+                if (_options.Files.Count != 2)
                 {
                     Console.WriteLine("Usage: Excel2TextDiff -d <excel file 1> <excel file 2> ");
                     Environment.Exit(1);
                 }
-
-                var diffProgram = options.DiffProgram ?? "TortoiseMerge.exe";
-
+            
+                var diffProgram = _options.DiffProgram ?? "TortoiseMerge.exe";
+            
                 var tempTxt1 = Path.GetTempFileName();
-                writer.TransformToTextAndSave(options.Files[0], tempTxt1);
+                TransformToTextAndSave(_options.Files[0], tempTxt1);
 
                 var tempTxt2 = Path.GetTempFileName();
-                writer.TransformToTextAndSave(options.Files[1], tempTxt2);
-
-                ProcessStartInfo startInfo = new ProcessStartInfo();
-                startInfo.FileName = diffProgram;
-                string argsFormation = options.DiffProgramArgumentFormat ?? "/base:{0} /mine:{1}";
+                TransformToTextAndSave(_options.Files[1], tempTxt2);
+            
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = diffProgram
+                };
+                var argsFormation = _options.DiffProgramArgumentFormat ?? "/base:{0} /mine:{1}";
                 startInfo.Arguments = string.Format(argsFormation, tempTxt1, tempTxt2);
                 Process.Start(startInfo);
             }
+            #endif
         }
 
-        private static CommandLineOptions ParseOptions(String[] args)
+        private static CommandLineOptions ParseOptions(string[] args)
         {
             var helpWriter = new StringWriter();
             var parser = new Parser(ps =>
@@ -91,6 +116,26 @@ namespace Excel2TextDiff
                 Environment.Exit(1);
             }
             return ((Parsed<CommandLineOptions>)result).Value;
+        }
+
+
+        private static void TransformToTextAndSave(string excelFile, string outputTextFile)
+        {
+            var writer = new TextWriter
+            {
+                PaddingBeginRow = _options.PaddingBeginRow,
+                Separator = _options.Separator
+            };
+
+            var ext = Path.GetExtension(excelFile);
+            IReader reader = ext switch
+            {
+                ".xml" => (new XmlReader(excelFile)),
+                _ => new ExcelReader(excelFile)
+            };
+            reader.Read(writer);
+
+            writer.Save(outputTextFile);
         }
     }
 }
