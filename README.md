@@ -4,20 +4,26 @@
 
 **===需要安装 [.net 5 sdk](https://dotnet.microsoft.com/en-us/download/dotnet/5.0)或[.net 6 sdk](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)或更高版本===**
 
-配置方式如图
+## 配置方式
 
 ![Excel2TextDiff](docs/images/a_1.jpg)
     
-增加对比效果参数支持：
 
-    -a 数字  从第几行开始对齐，默认为0(不对齐)
-    -s 字符  一行数据中各单元格之间的分隔符，默认为","
-
+## 对比效果
 默认对比效果
 ![Excel2TextDiff](docs/images/d_71.JPEG)
 
 使用参数 -a 1 -s | 效果
 ![Excel2TextDiff](docs/images/d_72.JPEG)
+
+
+## 更新内容
+更新1：增加对比效果参数支持
+
+    -a 数字  从第几行开始对齐，默认为0(不对齐)
+    -s 字符  一行数据中各单元格之间的分隔符，默认为","
+
+更新2：支持xml格式的excel文件（XML Spreadsheet 2003）
 
 ## 支持与联系
 
