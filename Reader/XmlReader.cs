@@ -26,13 +26,13 @@ namespace Excel2TextDiff
             XmlDocument = xml;
         }
 
-        public void Read(TextWriter writer)
+        public void Read(IVisitor visitor)
         {
             var rowCells = new List<string>();
 
             foreach (var sheet in Workbook.Worksheets)
             {
-                writer.BeginSheet(sheet.Name);
+                visitor.BeginSheet(sheet.Name);
 
                 foreach (var row in sheet.Table.Rows)
                 {
@@ -42,10 +42,10 @@ namespace Excel2TextDiff
                         rowCells.Add(cell.ReadStr());
                     }
 
-                    writer.WriteRow(rowCells);
+                    visitor.VisitRow(rowCells);
                 }
 
-                writer.EndSheet();
+                visitor.EndSheet();
             }
         }
     }

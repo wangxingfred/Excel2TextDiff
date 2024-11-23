@@ -17,7 +17,7 @@ namespace Excel2TextDiff
             _excelFile = excelFile;
         }
 
-        public void Read(TextWriter writer)
+        public void Read(IVisitor visitor)
         {
             using var excelFileStream = new FileStream(_excelFile,
                 FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -31,27 +31,27 @@ namespace Excel2TextDiff
 
             do
             {
-                writer.BeginSheet(reader.Name);
-                ReadRows(reader, writer);
-                writer.EndSheet();
+                visitor.BeginSheet(reader.Name);
+                ReadRows(reader, visitor);
+                visitor.EndSheet();
 
             } while (reader.NextResult());
         }
 
-        private void ReadRows(IExcelDataReader reader, TextWriter writer)
+        private void ReadRows(IExcelDataReader dataReader, IVisitor visitor)
         {
-            while (reader.Read())
+            while (dataReader.Read())
             {
                 try
                 {
                     _rowCells.Clear();
-                    for (int i = 0, n = reader.FieldCount; i < n; i++)
+                    for (int i = 0, n = dataReader.FieldCount; i < n; i++)
                     {
-                        var cell = reader.GetValue(i);
+                        var cell = dataReader.GetValue(i);
                         _rowCells.Add(cell.ToString());
                     }
 
-                    writer.WriteRow(_rowCells);
+                    visitor.VisitRow(_rowCells);
                 }
                 catch (Exception e)
                 {

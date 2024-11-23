@@ -5,96 +5,116 @@ using System.Text.RegularExpressions;
 
 namespace Excel2TextDiff
 {
-    public class TextWriter
+    public class TextWriter : IVisitor
     {
-        public int PaddingBeginRow { get; init; }
+        /// <summary>
+        /// 输出一行数据时，单元格之间的分隔符
+        /// </summary>
+        public string Separator { get; init; }
 
-        public char Separator { get; init; }
-
+        /// <summary>
+        /// 从第几行开始对齐
+        /// </summary>
+        public int AlignBeginRow { get; init; }
 
         private readonly StringBuilder _sb = new();
 
-        private readonly List<int> _rowMaxWidth = new();
+        /// <summary>
+        /// 需要处理对齐时，记录每一列的最大宽度
+        /// </summary>
+        private readonly List<int> _maxWidths = new();
 
-        private readonly List<List<string>> _rows = new();
+        private struct Cell
+        {
+            public string _value;
+            public int _width;
+        }
+
+        /// <summary>
+        /// 一个页签(sheet)的所有行数据
+        /// </summary>
+        private readonly List<List<Cell>> _rows = new();
+
+        private static readonly LinkedList<List<Cell>> _pool = new();
 
         public void BeginSheet(string sheetName)
         {
             _sb.Append($"\n==========  [{sheetName}]   ==========");
             _rows.Clear();
-            _rowMaxWidth.Clear();
+            _maxWidths.Clear();
         }
 
-        public void WriteRow(List<string> row)
+        public void VisitRow(List<string> row)
         {
             // 只保留到最后一个非空白单元格
-            int lastNotEmptyIndex = row.FindLastIndex(s => !string.IsNullOrEmpty(s));
-            if (lastNotEmptyIndex >= 0)
+            var lastNotEmptyIndex = row.FindLastIndex(s => !string.IsNullOrEmpty(s));
+
+            // 忽略空白行，没必要diff这个
+            if (lastNotEmptyIndex < 0) return;
+
+            var rowIndex = _rows.Count + 1;
+            var shouldAlign = ShouldAlign(rowIndex);
+
+            var cells = GetFromPool();
+            for (var i = 0; i < row.Count; i++)
             {
-                var listStr = row.GetRange(0, lastNotEmptyIndex + 1);
-                // excelHeader = false;
+                if (i > lastNotEmptyIndex) break;
 
-                if (PaddingBeginRow == _rows.Count + 1 && _rowMaxWidth.Count <= 0)
+                var str = row[i];
+                var totalCnt = str.Length;
+                var chineseCnt = GetChineseCnt(str);
+                var englishCnt = totalCnt - chineseCnt;
+                var width = englishCnt + 2 * chineseCnt;
+
+                if (shouldAlign)
                 {
-                    foreach (var str in listStr)
+                    if (i < _maxWidths.Count)
                     {
-                        _rowMaxWidth.Add(str.Length);
+                        _maxWidths[i] = Math.Max(width, _maxWidths[i]);
+                    }
+                    else
+                    {
+                        _maxWidths.Add(width);
                     }
                 }
 
-                var result = new List<string>();
-                for (var i = 0; i < listStr.Count; i++)
-                {
-                    var str = listStr[i];
-
-                    if (i < _rowMaxWidth.Count)
-                    {
-                        var totalCnt = str.Length;
-                        var chineseCnt = GetChineseCnt(str);
-                        var englishCnt = totalCnt - chineseCnt;
-                        var cnt = englishCnt + 2 * chineseCnt;
-                        _rowMaxWidth[i] = Math.Max(cnt, _rowMaxWidth[i]);
-                    }
-
-                    result.Add(str);
-                }
-
-                _rows.Add(result);
+                cells.Add(new Cell {_value = str, _width = width});
             }
-            // else
-            // {
-            //     // 忽略空白行，没必要diff这个
-            // }
+
+            _rows.Add(cells);
         }
 
         public void EndSheet()
         {
-            foreach (var t in _rows)
+            var rowIndex = 0;
+            foreach (var cells in _rows)
             {
-                try
+                ++rowIndex;
+                var shouldAlign = ShouldAlign(rowIndex);
+
+                _sb.Append('\n');
+
+                for (var j = 0; j < cells.Count; j++)
                 {
-                    _sb.Append('\n');
+                    var cell = cells[j];
+                    var value = cell._value;
 
-                    for (var j = 0; j < t.Count; j++)
+                    if (j > 0) _sb.Append(Separator);
+                    _sb.Append(value);
+
+                    if (shouldAlign && j < _maxWidths.Count)
                     {
-                        var str = t[j];
-                        if (j < _rowMaxWidth.Count)
+                        var maxWidth = _maxWidths[j];
+                        var paddingCnt = maxWidth - cell._width;
+
+                        if (paddingCnt > 0)
                         {
-                            var maxWidth = _rowMaxWidth[j];
-
-                            var paddingCnt = Math.Max(maxWidth - str.Length, 0);
-
-                            str = str.PadRight(paddingCnt, ' ');
+                            _sb.Append(' ', paddingCnt);
                         }
-
-                        if (j > 0) _sb.Append(Separator);
-                        _sb.Append(str);
                     }
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
+
+                ReturnToPool(cells);
             }
 
             _sb.Append('\n');
@@ -105,13 +125,17 @@ namespace Excel2TextDiff
             System.IO.File.WriteAllText(outputTextFile, _sb.ToString(), Encoding.UTF8);
         }
 
-
-
-        private int GetChineseCnt(string str)
+        private bool ShouldAlign(int rowIndex)
         {
-            using CharEnumerator cEnumerator = str.GetEnumerator();
-            Regex regex = new Regex("^[\u4E00-\u9FA5]{0,}$");
-            int cnt = 0;
+            return AlignBeginRow != 0 && rowIndex >= AlignBeginRow;
+        }
+
+
+        private static int GetChineseCnt(string str)
+        {
+            using var cEnumerator = str.GetEnumerator();
+            var regex = new Regex("^[\u4E00-\u9FA5]{0,}$");
+            var cnt = 0;
             while (cEnumerator.MoveNext())
             {
                 if (regex.IsMatch(cEnumerator.Current.ToString(), 0))
@@ -119,6 +143,21 @@ namespace Excel2TextDiff
             }
 
             return cnt;
+        }
+
+        private static List<Cell> GetFromPool()
+        {
+            var node = _pool.First;
+            if (node == null) return new List<Cell>();
+
+            _pool.RemoveFirst();
+            return node.Value;
+        }
+
+        private static void ReturnToPool(List<Cell> list)
+        {
+            list.Clear();
+            _pool.AddLast(list);
         }
     }
 }

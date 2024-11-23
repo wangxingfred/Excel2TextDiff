@@ -41,18 +41,21 @@ namespace XmlElements
             if (!base.Parse(xmlElement)) return false;
 
             _typeAttr = xmlElement.GetAttributeNode("ss:Type");
-            var type = _typeAttr.Value;
-            switch (type)
+            if (_typeAttr != null)
             {
-                case "Number":
-                    _type = DataType.Number;
-                    break;
-                case "String":
-                    _type = DataType.String;
-                    break;
-                default:
-                    _type = DataType.Invalid;
-                    break;
+                var type = _typeAttr.Value;
+                switch (type)
+                {
+                    case "Number":
+                        _type = DataType.Number;
+                        break;
+                    case "String":
+                        _type = DataType.String;
+                        break;
+                    default:
+                        _type = DataType.Invalid;
+                        break;
+                }
             }
 
             IsEmpty = xmlElement.IsEmpty || string.IsNullOrEmpty(xmlElement.InnerText);

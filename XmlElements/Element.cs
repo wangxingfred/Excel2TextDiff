@@ -13,7 +13,7 @@ namespace XmlElements
     public abstract class Element
     {
         protected const string NAMESPACE_URI = "urn:schemas-microsoft-com:office:spreadsheet";
-        protected XmlElement XmlParent { get; private set; }
+        protected XmlElement XmlParent { get; private init; }
         protected XmlElement XmlElement { get; private set; }
 
         public bool IsEmpty { get; protected set; } = true;

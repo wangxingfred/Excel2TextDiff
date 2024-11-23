@@ -8,13 +8,17 @@
 
 ![Excel2TextDiff](docs/images/a_1.jpg)
     
-使用效果如图
-    
-更新优化对比行列对齐
-优化前
+增加对比效果参数支持：
+
+    -a 数字  从第几行开始对齐，默认为0(不对齐)
+    -s 字符  一行数据中各单元格之间的分隔符，默认为","
+
+默认对比效果
 ![Excel2TextDiff](docs/images/d_71.JPEG)
-优化后
+
+使用参数 -a 1 -s | 效果
 ![Excel2TextDiff](docs/images/d_72.JPEG)
+
 ## 支持与联系
 
 QQ群: 692890842 （Luban开发交流群）
