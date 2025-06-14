@@ -86,18 +86,29 @@ namespace Excel2TextDiff
 
                 var diffProgram = _options.DiffProgram ?? "TortoiseMerge.exe";
 
-                var tempTxt1 = Path.GetTempFileName();
-                TransformToTextAndSave(_options.Files[0], tempTxt1);
+                var baseToDiff = _options.Files[0];
+                var mineToDiff = _options.Files[1];
 
-                var tempTxt2 = Path.GetTempFileName();
-                TransformToTextAndSave(_options.Files[1], tempTxt2);
+                try {
+                    var tempTxt1 = Path.GetTempFileName();
+                    TransformToTextAndSave(baseToDiff, tempTxt1);
+
+                    var tempTxt2 = Path.GetTempFileName();
+                    TransformToTextAndSave(mineToDiff, tempTxt2);
+
+                    baseToDiff = tempTxt1;
+                    mineToDiff = tempTxt2;
+                } 
+                catch (Exception e) {
+                    Console.WriteLine($"transform to text file failed: {e.Message}");
+                }
 
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = diffProgram
                 };
                 var argsFormation = _options.DiffProgramArgumentFormat ?? "/base:{0} /mine:{1}";
-                startInfo.Arguments = string.Format(argsFormation, tempTxt1, tempTxt2);
+                startInfo.Arguments = string.Format(argsFormation, baseToDiff, mineToDiff);
                 Process.Start(startInfo);
             }
         }

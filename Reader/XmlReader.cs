@@ -20,7 +20,8 @@ namespace Excel2TextDiff
             xml.Load(s);
 
             var workbook = new XmlElements.Workbook();
-            if (!workbook.Parse(xml.DocumentElement)) throw new Exception("Failed to parse workbook");
+            if (!workbook.Parse(xml.DocumentElement)) throw new Exception("Failed to parse workbook!");
+            if (workbook.Worksheets.Count == 0) throw new Exception("Workbook has no worksheet!");
 
             Workbook = workbook;
             XmlDocument = xml;
